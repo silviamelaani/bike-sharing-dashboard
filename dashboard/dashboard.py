@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
+absolute_path = os.path.dirname(__file__)
 
-path = os.path.dirname(__file__)
-
-day_df = pd.read_csv(os.path.join(path, "day.csv"))
-hour_df = pd.read_csv(os.path.join(path, "hour.csv"))
+day_df = pd.read_csv(os.path.join(absolute_path, "day.csv"))
+hour_df = pd.read_csv(os.path.join(absolute_path, "hour.csv"))
 
 st.set_page_config(
     page_title="Bike Sharing Dashboard",
