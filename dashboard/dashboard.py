@@ -80,8 +80,8 @@ year_option = st.sidebar.selectbox(
 
 weather_option = st.sidebar.multiselect(
     "Pilih Cuaca",
-    day_df['Kondisi Cuaca'].unique(),
-    default=day_df['Kondisi Cuaca'].unique()
+    day_df['Kondisi Cuaca'].dropna().unique(),
+    default=day_df['Kondisi Cuaca'].dropna().unique()
 )
 
 day_option = st.sidebar.multiselect(
@@ -173,6 +173,7 @@ with tab1:
                         (p.get_x()+p.get_width()/2, p.get_height()),
                         ha='center', va='bottom')
 
+        ax.set_ylabel("Rata-rata Penyewaan")
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
 
@@ -182,16 +183,14 @@ with tab1:
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Penyewaan sepeda paling tinggi terjadi saat cuaca cerah karena kondisi lingkungan mendukung aktivitas luar ruangan.
+        Penyewaan tertinggi terjadi saat kondisi Clear dan menurun saat Mist hingga Light Rain/Snow.
         <br><br>
-        Saat cuaca memburuk seperti hujan atau berkabut, terjadi penurunan signifikan karena faktor keamanan dan kenyamanan.
-        <br><br>
-        Hal ini menunjukkan bahwa cuaca merupakan faktor eksternal yang sangat memengaruhi perilaku pengguna.
+        Hal ini menunjukkan bahwa cuaca sangat memengaruhi keputusan pengguna dalam menggunakan sepeda.
         </div>
         """, unsafe_allow_html=True)
 
 # ======================
-# TAB 2 - POLA JAM (BALIK KE AWAL)
+# TAB 2 - POLA JAM
 # ======================
 
 with tab2:
@@ -199,6 +198,7 @@ with tab2:
     st.subheader("⏰ Pola Penyewaan per Jam")
 
     hourly_avg = filtered_hour.groupby('hr')['cnt'].mean().reset_index()
+    hourly_avg['Jam'] = hourly_avg['hr'].apply(lambda x: f"{x:02d}:00")
 
     col1, col2 = st.columns([3,2])
 
@@ -207,7 +207,7 @@ with tab2:
 
         sns.lineplot(
             data=hourly_avg,
-            x='hr',
+            x='Jam',
             y='cnt',
             marker='o',
             color="#dc2626",
@@ -215,11 +215,14 @@ with tab2:
             ax=ax
         )
 
-        ax.set_xticks(range(24))
-
         # highlight rush hour
         ax.axvspan(7, 9, color='gray', alpha=0.1)
         ax.axvspan(16, 18, color='gray', alpha=0.1)
+
+        plt.xticks(rotation=45)
+
+        ax.set_xlabel("Jam")
+        ax.set_ylabel("Rata-rata Penyewaan")
 
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
@@ -232,16 +235,14 @@ with tab2:
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Terlihat dua puncak utama pada pagi (08.00) dan sore (17.00–18.00).
+        Terlihat dua puncak utama pada pagi dan sore hari yang menunjukkan pola commuting.
         <br><br>
-        Ini menunjukkan sepeda digunakan untuk aktivitas commuting.
-        <br><br>
-        Dini hari menjadi waktu terendah karena minim aktivitas.
+        Aktivitas terendah terjadi pada dini hari.
         </div>
         """, unsafe_allow_html=True)
 
 # ======================
-# TAB 3 - HARIAN (FIX COLAB)
+# TAB 3 - HARIAN
 # ======================
 
 with tab3:
@@ -271,6 +272,8 @@ with tab3:
                         (p.get_x()+p.get_width()/2, p.get_height()),
                         ha='center', va='bottom')
 
+        ax.set_ylabel("Rata-rata Penyewaan")
+
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
 
@@ -283,8 +286,6 @@ with tab3:
         Penyewaan lebih tinggi pada hari kerja dibandingkan akhir pekan.
         <br><br>
         Ini menunjukkan sepeda digunakan sebagai transportasi rutin.
-        <br><br>
-        Akhir pekan lebih rendah karena penggunaan cenderung rekreasi.
         </div>
         """, unsafe_allow_html=True)
 
@@ -297,6 +298,7 @@ with tab4:
     st.subheader("📊 Clustering Penyewaan Sepeda per Jam")
 
     hourly_avg = filtered_hour.groupby('hr')['cnt'].mean().reset_index()
+    hourly_avg['Jam'] = hourly_avg['hr'].apply(lambda x: f"{x:02d}:00")
 
     def categorize(cnt):
         if cnt < 100:
@@ -315,7 +317,7 @@ with tab4:
 
         sns.barplot(
             data=hourly_avg,
-            x='hr',
+            x='Jam',
             y='cnt',
             hue='Kategori',
             dodge=False,
@@ -323,10 +325,14 @@ with tab4:
             ax=ax
         )
 
+        plt.xticks(rotation=45)
+
         for p in ax.patches:
             ax.annotate(f'{p.get_height():.0f}',
                         (p.get_x()+p.get_width()/2, p.get_height()),
                         ha='center', va='bottom', fontsize=8)
+
+        ax.set_ylabel("Rata-rata Penyewaan")
 
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
@@ -337,8 +343,8 @@ with tab4:
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Jam sibuk berada pada kategori High di pagi dan sore hari.
+        Jam sibuk terjadi pada pagi dan sore hari.
         <br><br>
-        Malam hari termasuk kategori Low karena aktivitas menurun.
+        Malam hari menunjukkan aktivitas rendah.
         </div>
         """, unsafe_allow_html=True)
