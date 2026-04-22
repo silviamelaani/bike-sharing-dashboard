@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 # ======================
-# BACKGROUND STYLE
+# STYLE
 # ======================
 
 st.markdown("""
@@ -68,7 +68,7 @@ day_df['Kondisi Cuaca'] = day_df['weathersit'].map(weather_map)
 hour_df['Hari'] = hour_df['weekday'].map(day_map)
 
 # ======================
-# SIDEBAR FILTER
+# SIDEBAR
 # ======================
 
 st.sidebar.header("Filter Data")
@@ -90,8 +90,17 @@ day_option = st.sidebar.multiselect(
     default=list(day_map.values())
 )
 
+# ✅ VALIDASI FILTER (ANTI ERROR)
+if len(weather_option) == 0:
+    st.warning("⚠️ Pilih minimal satu kondisi cuaca.")
+    st.stop()
+
+if len(day_option) == 0:
+    st.warning("⚠️ Pilih minimal satu hari.")
+    st.stop()
+
 # ======================
-# APPLY FILTER
+# FILTER DATA
 # ======================
 
 filtered_day = day_df.copy()
@@ -144,7 +153,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ======================
-# TAB 1 - CUACA
+# TAB 1
 # ======================
 
 with tab1:
@@ -173,7 +182,6 @@ with tab1:
                         (p.get_x()+p.get_width()/2, p.get_height()),
                         ha='center', va='bottom')
 
-        ax.set_ylabel("Rata-rata Penyewaan")
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
 
@@ -183,14 +191,14 @@ with tab1:
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Penyewaan tertinggi terjadi saat kondisi Clear dan menurun saat Mist hingga Light Rain/Snow.
+        Penyewaan tertinggi terjadi saat kondisi Clear dan menurun pada Mist hingga Light Rain/Snow.
         <br><br>
-        Hal ini menunjukkan bahwa cuaca sangat memengaruhi keputusan pengguna dalam menggunakan sepeda.
+        Cuaca menjadi faktor penting dalam menentukan aktivitas penggunaan sepeda.
         </div>
         """, unsafe_allow_html=True)
 
 # ======================
-# TAB 2 - POLA JAM
+# TAB 2
 # ======================
 
 with tab2:
@@ -215,14 +223,10 @@ with tab2:
             ax=ax
         )
 
-        # highlight rush hour
         ax.axvspan(7, 9, color='gray', alpha=0.1)
         ax.axvspan(16, 18, color='gray', alpha=0.1)
 
         plt.xticks(rotation=45)
-
-        ax.set_xlabel("Jam")
-        ax.set_ylabel("Rata-rata Penyewaan")
 
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
@@ -235,14 +239,14 @@ with tab2:
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Terlihat dua puncak utama pada pagi dan sore hari yang menunjukkan pola commuting.
+        Terdapat dua puncak utama pada pagi dan sore hari yang menunjukkan pola commuting.
         <br><br>
         Aktivitas terendah terjadi pada dini hari.
         </div>
         """, unsafe_allow_html=True)
 
 # ======================
-# TAB 3 - HARIAN
+# TAB 3
 # ======================
 
 with tab3:
@@ -272,8 +276,6 @@ with tab3:
                         (p.get_x()+p.get_width()/2, p.get_height()),
                         ha='center', va='bottom')
 
-        ax.set_ylabel("Rata-rata Penyewaan")
-
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
 
@@ -285,12 +287,12 @@ with tab3:
         <b>Insight</b><br><br>
         Penyewaan lebih tinggi pada hari kerja dibandingkan akhir pekan.
         <br><br>
-        Ini menunjukkan sepeda digunakan sebagai transportasi rutin.
+        Hal ini menunjukkan penggunaan sepeda sebagai transportasi rutin.
         </div>
         """, unsafe_allow_html=True)
 
 # ======================
-# TAB 4 - CLUSTERING
+# TAB 4
 # ======================
 
 with tab4:
@@ -332,8 +334,6 @@ with tab4:
                         (p.get_x()+p.get_width()/2, p.get_height()),
                         ha='center', va='bottom', fontsize=8)
 
-        ax.set_ylabel("Rata-rata Penyewaan")
-
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
 
@@ -345,6 +345,6 @@ with tab4:
         <b>Insight</b><br><br>
         Jam sibuk terjadi pada pagi dan sore hari.
         <br><br>
-        Malam hari menunjukkan aktivitas rendah.
+        Aktivitas rendah terjadi pada malam hingga dini hari.
         </div>
         """, unsafe_allow_html=True)
