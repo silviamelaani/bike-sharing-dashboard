@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
 
 st.set_page_config(
     page_title="Bike Sharing Dashboard",
@@ -38,7 +37,6 @@ box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 </style>
 """, unsafe_allow_html=True)
 
-
 # ======================
 # LOAD DATA
 # ======================
@@ -46,6 +44,71 @@ box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 day_df = pd.read_csv("day.csv")
 hour_df = pd.read_csv("hour.csv")
 
+# ======================
+# MAPPING
+# ======================
+
+weather_map = {
+    1: 'Clear',
+    2: 'Mist',
+    3: 'Light Rain/Snow'
+}
+
+day_map = {
+    0: 'Sunday',
+    1: 'Monday',
+    2: 'Tuesday',
+    3: 'Wednesday',
+    4: 'Thursday',
+    5: 'Friday',
+    6: 'Saturday'
+}
+
+day_df['Kondisi Cuaca'] = day_df['weathersit'].map(weather_map)
+hour_df['Hari'] = hour_df['weekday'].map(day_map)
+
+# ======================
+# SIDEBAR FILTER
+# ======================
+
+st.sidebar.header("Filter Data")
+
+year_option = st.sidebar.selectbox(
+    "Pilih Tahun",
+    ["Semua", "2011", "2012"]
+)
+
+weather_option = st.sidebar.multiselect(
+    "Pilih Cuaca",
+    day_df['Kondisi Cuaca'].unique(),
+    default=day_df['Kondisi Cuaca'].unique()
+)
+
+day_option = st.sidebar.multiselect(
+    "Pilih Hari",
+    list(day_map.values()),
+    default=list(day_map.values())
+)
+
+# ======================
+# APPLY FILTER
+# ======================
+
+filtered_day = day_df.copy()
+filtered_hour = hour_df.copy()
+
+if year_option != "Semua":
+    yr_val = 0 if year_option == "2011" else 1
+    filtered_day = filtered_day[filtered_day['yr'] == yr_val]
+    filtered_hour = filtered_hour[filtered_hour['yr'] == yr_val]
+
+filtered_day = filtered_day[
+    filtered_day['Kondisi Cuaca'].isin(weather_option)
+]
+
+filtered_hour = filtered_hour[
+    filtered_hour['Hari'].isin(day_option)
+]
 
 # ======================
 # HEADER
@@ -54,7 +117,6 @@ hour_df = pd.read_csv("hour.csv")
 st.title("🚲 Bike Sharing Dashboard")
 st.markdown("Analisis Pola Penyewaan Sepeda berdasarkan berbagai faktor")
 
-
 # ======================
 # KPI
 # ======================
@@ -62,14 +124,13 @@ st.markdown("Analisis Pola Penyewaan Sepeda berdasarkan berbagai faktor")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Total Penyewaan", int(day_df['cnt'].sum()))
+    st.metric("Total Penyewaan", int(filtered_day['cnt'].sum()))
 
 with col2:
-    st.metric("Rata-rata Harian", int(day_df['cnt'].mean()))
+    st.metric("Rata-rata Harian", int(filtered_day['cnt'].mean()))
 
 with col3:
-    st.metric("Hari Terbanyak", int(day_df['cnt'].max()))
-
+    st.metric("Hari Terbanyak", int(filtered_day['cnt'].max()))
 
 # ======================
 # TABS
@@ -82,29 +143,19 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "Clustering Jam"
 ])
 
-
 # ======================
-# TAB 1 - PENGARUH CUACA
+# TAB 1 - CUACA
 # ======================
 
 with tab1:
 
     st.subheader("🌦️ Pengaruh Cuaca")
 
-    weather_map = {
-        1: 'Cerah',
-        2: 'Berkabut',
-        3: 'Hujan Ringan',
-        4: 'Hujan Lebat'
-    }
-
-    day_df['Kondisi Cuaca'] = day_df['weathersit'].map(weather_map)
-    weather_avg = day_df.groupby('Kondisi Cuaca')['cnt'].mean().reset_index()
+    weather_avg = filtered_day.groupby('Kondisi Cuaca')['cnt'].mean().reset_index()
 
     col1, col2 = st.columns([3,2])
 
     with col1:
-
         fig, ax = plt.subplots(figsize=(8,4))
 
         sns.barplot(
@@ -118,15 +169,9 @@ with tab1:
         )
 
         for p in ax.patches:
-            ax.annotate(
-                f'{p.get_height():.0f}',
-                (p.get_x()+p.get_width()/2, p.get_height()),
-                ha='center',
-                va='bottom'
-            )
-
-        ax.set_xlabel("Kondisi Cuaca")
-        ax.set_ylabel("Rata-rata Penyewaan")
+            ax.annotate(f'{p.get_height():.0f}',
+                        (p.get_x()+p.get_width()/2, p.get_height()),
+                        ha='center', va='bottom')
 
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
@@ -134,36 +179,30 @@ with tab1:
         st.pyplot(fig)
 
     with col2:
-
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Penyewaan sepeda paling tinggi terjadi saat cuaca cerah. 
-        Hal ini menunjukkan bahwa pengguna lebih nyaman menggunakan 
-        sepeda ketika kondisi lingkungan mendukung aktivitas luar ruangan.
+        Penyewaan sepeda paling tinggi terjadi saat cuaca cerah karena kondisi lingkungan mendukung aktivitas luar ruangan.
         <br><br>
-        Ketika cuaca mulai berkabut atau hujan, jumlah penyewaan 
-        mengalami penurunan karena faktor kenyamanan dan keamanan.
+        Saat cuaca memburuk seperti hujan atau berkabut, terjadi penurunan signifikan karena faktor keamanan dan kenyamanan.
         <br><br>
-        Kondisi cuaca menjadi faktor penting dalam penggunaan bike sharing.
+        Hal ini menunjukkan bahwa cuaca merupakan faktor eksternal yang sangat memengaruhi perilaku pengguna.
         </div>
         """, unsafe_allow_html=True)
 
-
 # ======================
-# TAB 2 - POLA JAM
+# TAB 2 - POLA JAM (BALIK KE AWAL)
 # ======================
 
 with tab2:
 
     st.subheader("⏰ Pola Penyewaan per Jam")
 
-    hourly_avg = hour_df.groupby('hr')['cnt'].mean().reset_index()
+    hourly_avg = filtered_hour.groupby('hr')['cnt'].mean().reset_index()
 
     col1, col2 = st.columns([3,2])
 
     with col1:
-
         fig, ax = plt.subplots(figsize=(10,4))
 
         sns.lineplot(
@@ -178,8 +217,9 @@ with tab2:
 
         ax.set_xticks(range(24))
 
-        ax.set_xlabel("Jam")
-        ax.set_ylabel("Rata-rata Penyewaan")
+        # highlight rush hour
+        ax.axvspan(7, 9, color='gray', alpha=0.1)
+        ax.axvspan(16, 18, color='gray', alpha=0.1)
 
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
@@ -189,79 +229,47 @@ with tab2:
         st.pyplot(fig)
 
     with col2:
-
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Terlihat dua puncak penyewaan utama yaitu pagi sekitar 
-        jam 08.00 dan sore sekitar jam 17.00–18.00. 
-        Hal ini menunjukkan sepeda digunakan untuk aktivitas 
-        commuting seperti berangkat dan pulang kerja.
+        Terlihat dua puncak utama pada pagi (08.00) dan sore (17.00–18.00).
         <br><br>
-        Penyewaan terendah terjadi pada dini hari sekitar 
-        jam 00.00–05.00 karena aktivitas masyarakat masih rendah.
+        Ini menunjukkan sepeda digunakan untuk aktivitas commuting.
         <br><br>
-        Pola ini menunjukkan sepeda lebih banyak digunakan 
-        sebagai transportasi harian dibandingkan rekreasi malam hari.
+        Dini hari menjadi waktu terendah karena minim aktivitas.
         </div>
         """, unsafe_allow_html=True)
 
-
 # ======================
-# TAB 3 - RATA RATA HARIAN
+# TAB 3 - HARIAN (FIX COLAB)
 # ======================
 
 with tab3:
 
     st.subheader("📅 Rata-rata Penyewaan Sepeda per Hari")
 
-    day_map = {
-        0: 'Sunday',
-        1: 'Monday',
-        2: 'Tuesday',
-        3: 'Wednesday',
-        4: 'Thursday',
-        5: 'Friday',
-        6: 'Saturday'
-    }
-
-    hour_df['weekday_label'] = hour_df['weekday'].map(day_map)
-
-    daily_avg = hour_df.groupby('weekday_label')['cnt'].mean().reset_index()
-
-    order = [
-        'Sunday','Monday','Tuesday',
-        'Wednesday','Thursday','Friday','Saturday'
-    ]
+    daily_avg = (
+        filtered_hour.groupby('Hari')['cnt']
+        .mean()
+        .reindex(list(day_map.values()))
+    )
 
     col1, col2 = st.columns([3,2])
 
     with col1:
-
         fig, ax = plt.subplots(figsize=(8,5))
 
         sns.barplot(
-            data=daily_avg,
-            x='weekday_label',
-            y='cnt',
-            order=order,
-            hue='weekday_label',
-            palette="Reds",
-            legend=False,
+            x=daily_avg.index,
+            y=daily_avg.values,
+            color="#dc2626",
             ax=ax
         )
 
         for p in ax.patches:
-            ax.annotate(
-                f'{p.get_height():.0f}',
-                (p.get_x() + p.get_width()/2, p.get_height()),
-                ha='center',
-                va='bottom'
-            )
-
-        ax.set_title('Rata-rata Penyewaan Sepeda per Hari')
-        ax.set_xlabel('Hari')
-        ax.set_ylabel('Rata-rata Penyewaan')
+            ax.annotate(f'{p.get_height():.0f}',
+                        (p.get_x()+p.get_width()/2, p.get_height()),
+                        ha='center', va='bottom')
 
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
@@ -269,21 +277,16 @@ with tab3:
         st.pyplot(fig)
 
     with col2:
-
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Rata-rata penyewaan sepeda menunjukkan pola penggunaan 
-        lebih tinggi pada hari kerja dibandingkan akhir pekan. 
-        Hal ini menunjukkan sepeda digunakan sebagai transportasi 
-        harian seperti pergi bekerja atau sekolah.
+        Penyewaan lebih tinggi pada hari kerja dibandingkan akhir pekan.
         <br><br>
-        Pada akhir pekan, jumlah penyewaan cenderung lebih rendah 
-        karena aktivitas commuting berkurang dan penggunaan lebih 
-        bersifat rekreasi.
+        Ini menunjukkan sepeda digunakan sebagai transportasi rutin.
+        <br><br>
+        Akhir pekan lebih rendah karena penggunaan cenderung rekreasi.
         </div>
         """, unsafe_allow_html=True)
-
 
 # ======================
 # TAB 4 - CLUSTERING
@@ -293,7 +296,7 @@ with tab4:
 
     st.subheader("📊 Clustering Penyewaan Sepeda per Jam")
 
-    hourly_avg = hour_df.groupby('hr')['cnt'].mean().reset_index()
+    hourly_avg = filtered_hour.groupby('hr')['cnt'].mean().reset_index()
 
     def categorize(cnt):
         if cnt < 100:
@@ -308,7 +311,6 @@ with tab4:
     col1, col2 = st.columns([3,2])
 
     with col1:
-
         fig, ax = plt.subplots(figsize=(10,5))
 
         sns.barplot(
@@ -322,16 +324,9 @@ with tab4:
         )
 
         for p in ax.patches:
-            ax.annotate(
-                f'{p.get_height():.0f}',
-                (p.get_x() + p.get_width()/2, p.get_height()),
-                ha='center',
-                va='bottom',
-                fontsize=8
-            )
-
-        ax.set_xlabel("Jam")
-        ax.set_ylabel("Rata-rata Penyewaan")
+            ax.annotate(f'{p.get_height():.0f}',
+                        (p.get_x()+p.get_width()/2, p.get_height()),
+                        ha='center', va='bottom', fontsize=8)
 
         ax.set_facecolor("#fff5f5")
         fig.patch.set_facecolor("#fff5f5")
@@ -339,13 +334,11 @@ with tab4:
         st.pyplot(fig)
 
     with col2:
-
         st.markdown("""
         <div class="insight-box">
         <b>Insight</b><br><br>
-        Jam sibuk terjadi pada pagi dan sore hari dengan kategori tinggi.
-        Hal ini menunjukkan sepeda digunakan untuk aktivitas commuting.
+        Jam sibuk berada pada kategori High di pagi dan sore hari.
         <br><br>
-        Pada malam hari termasuk kategori rendah karena aktivitas menurun.
+        Malam hari termasuk kategori Low karena aktivitas menurun.
         </div>
         """, unsafe_allow_html=True)
